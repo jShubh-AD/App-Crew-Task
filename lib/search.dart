@@ -1,115 +1,77 @@
-import 'dart:developer';
-
-import 'package:appcrew_task/search.dart';
 import 'package:appcrew_task/widgets/custom_button.dart';
 import 'package:appcrew_task/widgets/custom_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
-import 'auth.dart';
-
-class Notes extends StatefulWidget {
-  const Notes({super.key});
+class SearchNotes extends StatefulWidget {
+  final List<QueryDocumentSnapshot<Object?>>? allNotes;
+  const SearchNotes({super.key, required this.allNotes});
 
   @override
-  State<Notes> createState() => _NotesState();
+  State<SearchNotes> createState() => _SearchNotesState();
 }
 
-class _NotesState extends State<Notes> {
+class _SearchNotesState extends State<SearchNotes> {
   final uid = FirebaseAuth.instance.currentUser!.uid;
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
-  bool isAddingTask = false;
+  final _searchCtrl = TextEditingController();
+  late List<QueryDocumentSnapshot>? filteredNotes;
 
-  List<QueryDocumentSnapshot<Object?>>? allNotes;
+  @override
+  void initState(){
+    super.initState();
+    filteredNotes = widget.allNotes;
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
-        title: const Text('Notes'),
+        title: const Text('Search Notes'),
         backgroundColor: Colors.grey.shade100,
         surfaceTintColor: Colors.transparent,
-        actions: [
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.search),
-                onPressed: allNotes == null
-                    ? null
-                    : () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => SearchNotes(allNotes: allNotes!),
-                    ),
-                  );
-                },
-              ),
-              IconButton(
-                icon: const Icon(Icons.logout),
-                onPressed: () async {
-                  await FirebaseAuth.instance.signOut();
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const Auth()),
-                  );
-                },
-              ),
-            ],
-          ),
-        ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _openNoteSheet(false, null);
-        },
-        child: const Icon(Icons.add),
-      ),
-      body: StreamBuilder<QuerySnapshot>(
-        stream: FirebaseFirestore.instance
-            .collection('notes')
-            .where('user_id', isEqualTo: uid)
-            .orderBy('created_at', descending: true)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            log("Snapshot data: ${snapshot.data} ");
-            return const Center(child: Text('No notes yet'));
-          }
-
-          if (snapshot.hasError) {
-            log(
-              "Snapshot data: ${snapshot.data}",
-              error: snapshot.error,
-              stackTrace: snapshot.stackTrace,
-            );
-            return const Center(child: Text('An error occurred'));
-          }
-
-          allNotes = snapshot.data!.docs;
-
-          return Padding(
-            padding: const EdgeInsets.all(16),
-            child: allNotes!.isEmpty || allNotes == null
-                ? const Center(child: Text('No Notes available'))
-                : ListView.builder(
-                    itemCount: allNotes!.length,
-                    itemBuilder: (context, index) {
-                      final note = allNotes![index];
-                      return _noteTile(note);
-                    },
-                  ),
-          );
-        },
+      body: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            AppTextField(
+              controller: _searchCtrl,
+              hintText: "Search",
+              onChanged: (q) => setState(() {
+                filteredNotes = getFilteredNotes(widget.allNotes!, q.toLowerCase());
+              })
+            ), Expanded(
+              child: ListView.builder(
+                itemCount: filteredNotes!.length,
+                itemBuilder: (context, index) {
+                  final note = filteredNotes![index];
+                  return _noteTile(note);
+                  },
+              ),
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  // method for getting filter notes
+  List<QueryDocumentSnapshot> getFilteredNotes(
+      List<QueryDocumentSnapshot> allNotes,
+      String searchQuery,
+      ) {
+    final query = searchQuery.toLowerCase().trim();
+
+    if (query.isEmpty) return allNotes;
+
+    return allNotes.where((doc) {
+      final title = (doc['title'] as String).toLowerCase();
+      return title.contains(query);
+    }).toList();
   }
 
   Widget _noteTile(QueryDocumentSnapshot note) {
@@ -192,13 +154,76 @@ class _NotesState extends State<Notes> {
             ),
             GestureDetector(
               onTap: () {
-                return _openNoteSheet(true,note);
+                return _openNoteSheet(note);
               },
               child: Icon(Icons.edit, color: Colors.blue,),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  // edit note call to firestore
+  Future<void> _editNote(QueryDocumentSnapshot note) async {
+    if (_titleCtrl.text.trim().isEmpty) return;
+
+    await note.reference.update({
+      'title': _titleCtrl.text.trim(),
+      'content': _contentCtrl.text.trim(),
+      'updated_at': FieldValue.serverTimestamp(),
+    });
+
+    if (mounted) Navigator.pop(context);
+  }
+
+  // add note UI
+  void _openNoteSheet(QueryDocumentSnapshot note) {
+      _titleCtrl.text = note['title'];
+      _contentCtrl.text = note['content'];
+
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (_) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 16),
+              Text(
+                textAlign: TextAlign.center,
+                "Edit Note",
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 16),
+              AppTextField(controller: _titleCtrl, hintText: "Add Task Title"),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _contentCtrl,
+                maxLines: 4,
+                hintText: "Add Task Title",
+              ),
+              const SizedBox(height: 16),
+              AppButton(
+                onPressed: () {_editNote(note);},
+                text: "Edit Note",
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -224,99 +249,6 @@ class _NotesState extends State<Notes> {
         ],
       ),
     );
-  }
-
-  // add note UI
-  void _openNoteSheet(bool isEdit, QueryDocumentSnapshot? note) {
-
-    if(isEdit && note != null){
-      _titleCtrl.text = note['title'];
-      _contentCtrl.text = note['content'];
-    }
-    else{
-      _titleCtrl.clear();
-      _contentCtrl.clear();
-    }
-
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              Text(
-                textAlign: TextAlign.center,
-                isEdit? "Edit Note" :"Add Note",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              AppTextField(controller: _titleCtrl, hintText: "Add Task Title"),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _contentCtrl,
-                maxLines: 4,
-                hintText: "Add Task Title",
-              ),
-              const SizedBox(height: 16),
-              AppButton(
-                loading: isAddingTask,
-                onPressed: () {
-                  if(isEdit && note != null){
-                    _editNote(note);
-                  }else{
-                    _addNote;
-                  }},
-                text: isEdit ? "Edit Note" :'Add Note',
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // edit note call to firestore
-  Future<void> _editNote(QueryDocumentSnapshot note) async {
-    if (_titleCtrl.text.trim().isEmpty) return;
-
-    await note.reference.update({
-      'title': _titleCtrl.text.trim(),
-      'content': _contentCtrl.text.trim(),
-      'updated_at': FieldValue.serverTimestamp(),
-    });
-
-    if (mounted) Navigator.pop(context);
-  }
-
-
-  // add note call to firestore
-  Future<void> _addNote() async {
-    if (_titleCtrl.text.trim().isEmpty || _contentCtrl.text.isEmpty) return;
-
-    await FirebaseFirestore.instance.collection('notes').add({
-      'title': _titleCtrl.text.trim(),
-      'content': _contentCtrl.text.trim(),
-      'isCompleted': false,
-      'user_id': uid,
-      'created_at': FieldValue.serverTimestamp(),
-      'updated_at': null,
-    });
-
-    if (mounted) Navigator.pop(context);
   }
 
   String formatDate(DateTime d) =>
