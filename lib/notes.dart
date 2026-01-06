@@ -14,15 +14,14 @@ class Notes extends StatefulWidget {
 
 class _NotesState extends State<Notes> {
   final uid = FirebaseAuth.instance.currentUser!.uid;
-  String searchQuery = '';
 
   final _searchCtrl = TextEditingController();
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
 
-
   @override
   Widget build(BuildContext context) {
+
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
       appBar: AppBar(
@@ -34,10 +33,10 @@ class _NotesState extends State<Notes> {
             icon: const Icon(Icons.logout),
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const Auth()),
-                );
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const Auth()),
+              );
             },
           ),
         ],
@@ -64,38 +63,43 @@ class _NotesState extends State<Notes> {
             return const Center(child: Text('No notes yet'));
           }
 
-          if(snapshot.hasError){
-            log("Snapshot data: ${snapshot.data}", error: snapshot.error, stackTrace: snapshot.stackTrace);
+          if (snapshot.hasError) {
+            log(
+              "Snapshot data: ${snapshot.data}",
+              error: snapshot.error,
+              stackTrace: snapshot.stackTrace,
+            );
             return const Center(child: Text('An error occurred'));
           }
 
           final allNotes = snapshot.data!.docs;
-          log("Snapshot data: ${snapshot.data.toString()}", stackTrace: snapshot.stackTrace);
+          log(
+            "Snapshot data: ${snapshot.data.toString()}",
+            stackTrace: snapshot.stackTrace,
+          );
+
+          String searchQuery = _searchCtrl.text.toLowerCase();
 
           final filteredNotes = allNotes.where((doc) {
             final title = (doc['title'] as String).toLowerCase();
-            return title.contains(searchQuery);
+            return searchQuery.isEmpty || title.contains(searchQuery);
           }).toList();
 
-          if (filteredNotes.isEmpty) {
-            return const Center(child: Text('No matching notes'));
-          }
 
           return Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
                 AppTextField(
-                    controller: _searchCtrl,
-                    hintText: "Search",
-                  onChanged: (q) {
-                      setState(() {
-                        searchQuery = _searchCtrl.text;
-                      });
-                  }
+                  controller: _searchCtrl,
+                  hintText: "Search",
+                  onChanged: (_){},
                 ),
+                const SizedBox(height: 12),
                 Expanded(
-                  child: ListView.builder(
+                  child: filteredNotes.isEmpty
+                      ? const Center(child: Text('No matching notes'))
+                      : ListView.builder(
                     itemCount: filteredNotes.length,
                     itemBuilder: (context, index) {
                       final note = filteredNotes[index];
@@ -106,6 +110,7 @@ class _NotesState extends State<Notes> {
               ],
             ),
           );
+
         },
       ),
     );
@@ -116,17 +121,62 @@ class _NotesState extends State<Notes> {
       elevation: 4,
       margin: const EdgeInsets.symmetric(vertical: 6),
       child: ListTile(
-        title: Text(note['title']),
+        leading: Checkbox(
+            value: note['isCompleted'],
+            onChanged: (v) async{
+              await note.reference.update({
+                'isCompleted': v,
+                'updated_at': FieldValue.serverTimestamp(),
+              });
+            }
+        ),
+        title: Text(
+            note['title'],
+          style: TextStyle(
+              color: note['isCompleted'] ? Colors.grey : Colors.black,
+              decoration: note['isCompleted'] ? TextDecoration.lineThrough : TextDecoration.none
+          ),
+        ),
         subtitle: Text(
           note['content'],
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+              color: note['isCompleted'] ? Colors.grey : Colors.black,
+              decoration: note['isCompleted'] ? TextDecoration.lineThrough : TextDecoration.none
+          ),
         ),
-        trailing: const Icon(Icons.delete),
+        trailing: IconButton(icon :const Icon(Icons.delete), onPressed: (){ return _confirmDelete(note); },),
       ),
     );
   }
 
+  // delete call to firestore with ui
+  void _confirmDelete(QueryDocumentSnapshot note) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Delete note'),
+        content: const Text('Are you sure you want to delete this note?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel',style: TextStyle(color: Colors.blue),),
+          ),
+          TextButton(
+            onPressed: () async {
+              await note.reference.delete();
+              if (mounted) Navigator.pop(context);
+            },
+            child: const Text('Delete',),
+          ),
+        ],
+      ),
+    );
+  }
+
+
+  // add note UI
   void _openNoteSheet() {
     _titleCtrl.clear();
     _contentCtrl.clear();
@@ -173,19 +223,19 @@ class _NotesState extends State<Notes> {
     );
   }
 
+  // add note call to firestore
   Future<void> _addNote() async {
     if (_titleCtrl.text.trim().isEmpty) return;
 
     await FirebaseFirestore.instance.collection('notes').add({
       'title': _titleCtrl.text.trim(),
       'content': _contentCtrl.text.trim(),
+      'isCompleted': false,
       'user_id': uid,
       'created_at': FieldValue.serverTimestamp(),
-      'updated_at': FieldValue.serverTimestamp(),
+      'updated_at': null,
     });
 
     if (mounted) Navigator.pop(context);
   }
-
-
 }
