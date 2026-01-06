@@ -6,6 +6,7 @@ class AppTextField extends StatelessWidget {
   final Function(String)? onChanged;
   final TextInputType keyboardType;
   final IconData? prefixIcon;
+  final int? maxLines;
   final Widget? suffixIcon;
   final String? Function(String?)? validator;
   final Color cardColor;
@@ -15,6 +16,7 @@ class AppTextField extends StatelessWidget {
     required this.controller,
     required this.hintText,
     this.onChanged,
+    this.maxLines = 1,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.prefixIcon,
@@ -29,6 +31,7 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       onChanged: onChanged,
+      maxLines: maxLines,
       keyboardType: keyboardType,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(color: Colors.black87, fontSize: 16),
