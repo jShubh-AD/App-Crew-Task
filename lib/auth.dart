@@ -1,3 +1,4 @@
+import 'package:appcrew_task/notes.dart';
 import 'package:appcrew_task/utils/validators.dart';
 import 'package:appcrew_task/widgets/custom_button.dart';
 import 'package:appcrew_task/widgets/custom_textfield.dart';
@@ -23,24 +24,42 @@ class _AuthState extends State<Auth> {
     if(!_formKey.currentState!.validate()) return;
     setState(() => loading = true);
     try {
+      UserCredential res;
+
       if (isLogin) {
-        await FirebaseAuth.instance.signInWithEmailAndPassword(
+        res =  await FirebaseAuth.instance.signInWithEmailAndPassword(
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text.trim(),
         );
+
       } else {
-        await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        res = await FirebaseAuth.instance.createUserWithEmailAndPassword(
           email: _emailCtrl.text.trim(),
           password: _passCtrl.text.trim(),
         );
       }
+
+      if (res.user != null && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const Notes()),
+        );
+      }
+
     } on FirebaseAuthException catch (e) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text(e.message ?? 'Auth error')));
     } finally {
-      setState(() => loading = false);
+      if(mounted) setState(() => loading = false);
     }
+  }
+
+  @override
+  void dispose(){
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
   }
 
   @override
