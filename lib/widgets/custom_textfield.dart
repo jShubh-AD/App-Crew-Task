@@ -3,6 +3,7 @@ class AppTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hintText;
   final bool obscureText;
+  final Function(String)? onChanged;
   final TextInputType keyboardType;
   final IconData? prefixIcon;
   final Widget? suffixIcon;
@@ -13,6 +14,7 @@ class AppTextField extends StatelessWidget {
     super.key,
     required this.controller,
     required this.hintText,
+    this.onChanged,
     this.obscureText = false,
     this.keyboardType = TextInputType.text,
     this.prefixIcon,
@@ -26,6 +28,7 @@ class AppTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       obscureText: obscureText,
+      onChanged: onChanged,
       keyboardType: keyboardType,
       autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(color: Colors.black87, fontSize: 16),
