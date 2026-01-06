@@ -1,16 +1,81 @@
-# appcrew_task
+📝 Notes App – Flutter + Firebase
 
-A new Flutter project.
+A simple Notes application built using Flutter and Firebase, demonstrating authentication, secure CRUD operations, and a working Android build.
 
-## Getting Started
+🎯 Features
+🔐 Authentication
 
-This project is a starting point for a Flutter application.
+Email & password sign up
 
-A few resources to get you started if this is your first Flutter project:
+Login / Logout
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+User session persists across app restarts
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+🗒 Notes (CRUD)
+
+Create notes
+
+Edit notes
+
+Delete notes (with confirmation)
+
+Mark notes as completed
+
+Each user can only access their own notes
+
+🔍 Search
+
+Search notes by title
+
+Implemented on a separate search screen
+
+Client-side filtering
+
+🛠 Tech Stack
+
+Flutter
+
+Firebase Authentication
+
+Cloud Firestore
+
+🗃 Firestore Database Structure
+Collection: notes
+Field	Type
+title	String
+content	String
+user_id	String
+isCompleted	Boolean
+created_at	Timestamp
+updated_at	Timestamp
+
+▶️ How to Run Locally
+
+Clone the repository
+
+git clone https://github.com/jShubh-AD/simple_notes_app.git
+
+Install dependencies
+
+flutter pub get
+
+Firebase setup
+
+Create a Firebase project
+
+Enable Email/Password Authentication
+
+Enable Cloud Firestore
+
+Add google-services.json to android/app
+
+Run the app
+
+flutter run
+
+📦 Build APK
+flutter build apk
+
+
+APK location:
+build/app/outputs/flutter-apk/app-release.apk
