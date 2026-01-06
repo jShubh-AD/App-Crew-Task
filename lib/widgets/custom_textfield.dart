@@ -27,6 +27,7 @@ class AppTextField extends StatelessWidget {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      autovalidateMode: AutovalidateMode.onUserInteraction,
       style: const TextStyle(color: Colors.black87, fontSize: 16),
       decoration: InputDecoration(
         hintText: hintText,

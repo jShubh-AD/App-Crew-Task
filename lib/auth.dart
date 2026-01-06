@@ -1,3 +1,4 @@
+import 'package:appcrew_task/utils/validators.dart';
 import 'package:appcrew_task/widgets/custom_button.dart';
 import 'package:appcrew_task/widgets/custom_textfield.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,6 +20,7 @@ class _AuthState extends State<Auth> {
   final _formKey = GlobalKey<FormState>();
 
   Future<void> _submit() async {
+    if(!_formKey.currentState!.validate()) return;
     setState(() => loading = true);
     try {
       if (isLogin) {
@@ -44,38 +46,59 @@ class _AuthState extends State<Auth> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(isLogin ? 'Login' : 'Sign Up')),
+      appBar: AppBar(
+        elevation: 8,
+        title: Text(
+          isLogin ? 'Welcome Back, I missed you.' : "Let's start new journey",
+        ),
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
-          child: Column(
-            children: [
-              AppTextField(
-                controller: _emailCtrl,
-                hintText: "johndoe@123gmail.com",
-              ),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _passCtrl,
-                obscureText: true,
-                hintText: "Enter a strong",
-              ),
-              const SizedBox(height: 24),
-              AppButton(
-                loading: loading,
-                text: isLogin ? "Login" : "Sign up",
-                onPressed: _submit,
-              ),
-              TextButton(
-                onPressed: () => setState(() => isLogin = !isLogin),
-                child: Text(
-                  isLogin
-                      ? "Don't have an account? Sign up"
-                      : "Already have an account? Login",
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  textAlign: TextAlign.center,
+                  isLogin ? 'Login' : "Sign up",
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700
+                  ),
                 ),
-              ),
-            ],
+                SizedBox(height: 16,),
+                AppTextField(
+                  controller: _emailCtrl,
+                  validator: ValidationHelper.emailValidator,
+                  hintText: "johndoe@123gmail.com",
+                ),
+                const SizedBox(height: 12),
+                AppTextField(
+                  controller: _passCtrl,
+                  obscureText: true,
+                  validator: ValidationHelper.passwordValidator,
+                  hintText: "Enter a strong",
+                ),
+                const SizedBox(height: 24),
+                AppButton(
+                  loading: loading,
+                  text: isLogin ? "Login" : "Sign up",
+                  onPressed: _submit,
+                ),
+                TextButton(
+                  onPressed: () => setState(() => isLogin = !isLogin),
+                  child: Text(
+                    isLogin
+                        ? "Don't have an account? Sign up"
+                        : "Already have an account? Login",
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

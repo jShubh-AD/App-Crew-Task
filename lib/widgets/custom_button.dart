@@ -23,11 +23,14 @@ class AppButton extends StatelessWidget {
         onPressed: loading ? null : onPressed,
         child: loading
             ? const SizedBox(
-          height: 20,
-          width: 20,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
-            : Text(text),
+                height: 20,
+                width: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Text(
+                text,
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 18),
+              ),
       ),
     );
   }
