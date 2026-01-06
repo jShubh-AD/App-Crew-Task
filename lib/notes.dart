@@ -1,4 +1,5 @@
 import 'dart:developer';
+import 'package:appcrew_task/widgets/custom_button.dart';
 import 'package:appcrew_task/widgets/custom_textfield.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -18,6 +19,7 @@ class _NotesState extends State<Notes> {
   final _searchCtrl = TextEditingController();
   final _titleCtrl = TextEditingController();
   final _contentCtrl = TextEditingController();
+  bool isAddingTask = false;
 
   @override
   Widget build(BuildContext context) {
@@ -132,6 +134,8 @@ class _NotesState extends State<Notes> {
         ),
         title: Text(
             note['title'],
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(
               color: note['isCompleted'] ? Colors.grey : Colors.black,
               decoration: note['isCompleted'] ? TextDecoration.lineThrough : TextDecoration.none
@@ -183,6 +187,7 @@ class _NotesState extends State<Notes> {
 
     showModalBottomSheet(
       context: context,
+      showDragHandle: true,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -198,24 +203,32 @@ class _NotesState extends State<Notes> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: _titleCtrl,
-                decoration: const InputDecoration(labelText: 'Title'),
-              ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _contentCtrl,
-                decoration: const InputDecoration(labelText: 'Content'),
-                maxLines: 4,
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _addNote,
-                  child: const Text('Add Note'),
+              const SizedBox(height: 16,),
+              Text(
+                textAlign: TextAlign.center,
+                "Add Task",
+                style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700
                 ),
               ),
+              const SizedBox(height: 16,),
+              AppTextField(
+                controller: _titleCtrl,
+                hintText: "Add Task Title",
+              ),
+              const SizedBox(height: 12),
+              AppTextField(
+                controller: _contentCtrl,
+                hintText: "Add Task Title",
+              ),
+              const SizedBox(height: 16),
+              AppButton(
+                loading: isAddingTask,
+                onPressed: _addNote,
+                text: 'Add Note',
+              ),
+              const SizedBox(height: 16,)
             ],
           ),
         );
