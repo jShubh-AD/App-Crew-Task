@@ -25,6 +25,11 @@ class _NotesState extends State<Notes> {
   List<QueryDocumentSnapshot<Object?>>? allNotes;
 
   @override
+  void dispose(){
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey.shade100,
@@ -37,13 +42,11 @@ class _NotesState extends State<Notes> {
             children: [
               IconButton(
                 icon: const Icon(Icons.search),
-                onPressed: allNotes == null
-                    ? null
-                    : () {
+                onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => SearchNotes(allNotes: allNotes!),
+                      builder: (_) => SearchNotes(allNotes: allNotes),
                     ),
                   );
                 },
@@ -80,7 +83,6 @@ class _NotesState extends State<Notes> {
           }
 
           if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-            log("Snapshot data: ${snapshot.data} ");
             return const Center(child: Text('No notes yet'));
           }
 
@@ -97,7 +99,7 @@ class _NotesState extends State<Notes> {
 
           return Padding(
             padding: const EdgeInsets.all(16),
-            child: allNotes!.isEmpty || allNotes == null
+            child: allNotes == null || allNotes!.isEmpty
                 ? const Center(child: Text('No Notes available'))
                 : ListView.builder(
                     itemCount: allNotes!.length,
@@ -217,6 +219,7 @@ class _NotesState extends State<Notes> {
           TextButton(
             onPressed: () async {
               await note.reference.delete();
+              setState(() {});
               if (mounted) Navigator.pop(context);
             },
             child: const Text('Delete'),
@@ -277,7 +280,7 @@ class _NotesState extends State<Notes> {
                   if(isEdit && note != null){
                     _editNote(note);
                   }else{
-                    _addNote;
+                    _addNote();
                   }},
                 text: isEdit ? "Edit Note" :'Add Note',
               ),
@@ -298,14 +301,14 @@ class _NotesState extends State<Notes> {
       'content': _contentCtrl.text.trim(),
       'updated_at': FieldValue.serverTimestamp(),
     });
-
+    setState(() {});
     if (mounted) Navigator.pop(context);
   }
 
 
   // add note call to firestore
   Future<void> _addNote() async {
-    if (_titleCtrl.text.trim().isEmpty || _contentCtrl.text.isEmpty) return;
+    if (_titleCtrl.text.trim().isEmpty) return;
 
     await FirebaseFirestore.instance.collection('notes').add({
       'title': _titleCtrl.text.trim(),
@@ -315,7 +318,7 @@ class _NotesState extends State<Notes> {
       'created_at': FieldValue.serverTimestamp(),
       'updated_at': null,
     });
-
+    setState(() {});
     if (mounted) Navigator.pop(context);
   }
 

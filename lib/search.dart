@@ -42,15 +42,19 @@ class _SearchNotesState extends State<SearchNotes> {
               controller: _searchCtrl,
               hintText: "Search",
               onChanged: (q) => setState(() {
-                filteredNotes = getFilteredNotes(widget.allNotes!, q.toLowerCase());
+                if(widget.allNotes != null){
+                  filteredNotes = getFilteredNotes(widget.allNotes!, q.toLowerCase());
+                }
               })
             ), Expanded(
-              child: ListView.builder(
+              child: filteredNotes == null || filteredNotes!.isEmpty
+                  ? const Center(child: Text('No Notes available'))
+                  : ListView.builder(
                 itemCount: filteredNotes!.length,
                 itemBuilder: (context, index) {
                   final note = filteredNotes![index];
                   return _noteTile(note);
-                  },
+                },
               ),
             ),
           ],
@@ -142,115 +146,10 @@ class _SearchNotesState extends State<SearchNotes> {
             ),
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GestureDetector(
-              onTap: () {
-                return _confirmDelete(note);
-              },
-              child: Icon(Icons.delete),
-            ),
-            GestureDetector(
-              onTap: () {
-                return _openNoteSheet(note);
-              },
-              child: Icon(Icons.edit, color: Colors.blue,),
-            ),
-          ],
-        ),
+
       ),
     );
   }
-
-  // edit note call to firestore
-  Future<void> _editNote(QueryDocumentSnapshot note) async {
-    if (_titleCtrl.text.trim().isEmpty) return;
-
-    await note.reference.update({
-      'title': _titleCtrl.text.trim(),
-      'content': _contentCtrl.text.trim(),
-      'updated_at': FieldValue.serverTimestamp(),
-    });
-
-    if (mounted) Navigator.pop(context);
-  }
-
-  // add note UI
-  void _openNoteSheet(QueryDocumentSnapshot note) {
-      _titleCtrl.text = note['title'];
-      _contentCtrl.text = note['content'];
-
-    showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) {
-        return Padding(
-          padding: EdgeInsets.only(
-            left: 16,
-            right: 16,
-            top: 16,
-            bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 16),
-              Text(
-                textAlign: TextAlign.center,
-                "Edit Note",
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
-              ),
-              const SizedBox(height: 16),
-              AppTextField(controller: _titleCtrl, hintText: "Add Task Title"),
-              const SizedBox(height: 12),
-              AppTextField(
-                controller: _contentCtrl,
-                maxLines: 4,
-                hintText: "Add Task Title",
-              ),
-              const SizedBox(height: 16),
-              AppButton(
-                onPressed: () {_editNote(note);},
-                text: "Edit Note",
-              ),
-              const SizedBox(height: 16),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  // delete call to firestore with ui
-  void _confirmDelete(QueryDocumentSnapshot note) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Delete note'),
-        content: const Text('Are you sure you want to delete this note?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.blue)),
-          ),
-          TextButton(
-            onPressed: () async {
-              await note.reference.delete();
-              if (mounted) Navigator.pop(context);
-            },
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
   String formatDate(DateTime d) =>
       '${d.day}/${d.month}/${d.year} ${d.hour}:${d.minute.toString().padLeft(2, '0')}';
 }
